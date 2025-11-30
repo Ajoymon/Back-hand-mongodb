@@ -37,6 +37,23 @@ async function run() {
 
     const db = client.db('smart_db');
     const productsCllection = db.collection('products')
+    const bidsCollection = db.collection('bids')
+    const usersCollection = db.collection('users')
+
+    app.post('/users', async (req, res) => {
+      const newUser = req.body;
+      const email = req.body.email;
+      const query = { email: email };
+      const existingUser = await usersCollection.findOne(query);
+      if (existingUser) {
+        res.send('user already exits.do not need to insert again')
+      }
+      else {
+        const result = await usersCollection.insertOne(newUser);
+        res.send(result);
+      }
+
+    })
 
     app.post('/products', async (req, res) => {
       const newProducts = req.body;
@@ -45,7 +62,17 @@ async function run() {
     })
 
     app.get('/products', async (req, res) => {
-      const cursor = productsCllection.find();
+      // const projectfields = { title: 1, price_min: 1, price_max: 1, image: 1 }
+      // const cursor = productsCllection.find().sort({ price_min: 1 }).skip(4).limit(5).project(projectfields);
+
+      console.log(req.query)
+      const email = req.query.email;
+      const query = {}
+      if (email) {
+        query.email = email;
+      }
+
+      const cursor = productsCllection.find(query);
       const result = await cursor.toArray();
       res.send(result)
     })
@@ -78,6 +105,32 @@ async function run() {
       res.send(result);
     })
 
+
+    app.get('/bids', async (req, res) => {
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        query.buyer_email = email;
+      }
+      const cursor = bidsCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+    app.post('/bids', async (req, res) => {
+      const newBids = req.body;
+      const result = await bidsCollection.insertOne(newBids);
+      res.send(result);
+    })
+
+
+    app.delete('/bids?:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await bidsCollection.deleteOne(query);
+      res.send(result);
+
+    })
 
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
